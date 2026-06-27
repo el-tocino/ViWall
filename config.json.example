@@ -1,0 +1,10 @@
+{
+    "crop": {
+        "x": 0,
+        "y": 0,
+        "w": 640,
+        "h": 480
+    },
+    "filename": "/path/to/local_video.mp4",
+    "machine_id": "node_1"
+}
