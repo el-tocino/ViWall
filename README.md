@@ -9,3 +9,6 @@ echo "reconfigure node_1 100 100 640 480" | nc -u -w0 127.0.0.1 5005
 
 # Stop playback (goes to black screen)
 echo "stop" | nc -u -w0 127.0.0.1 5005
+
+# Sync all listening players to frame 300
+echo "sync 300" | nc -u -w0 127.0.0.1 5005
