@@ -33,25 +33,47 @@ Do a "pip install opencv-python numpy" and you should be good to go.  For the co
 ### Setup
 <blockquote>
 $ python viwall_config.py
+  
   --- Video Wall Resolution Configuration ---
+
 1: 1080p (1920x1080)
+
 2: 4K UHD (3840x2160)
+
 3: Custom Resolution
+
 Select the target video resolution layout [1-3]: 2
+
 Enter path to the setup photo (e.g., wall.jpg): wall.jpg
 
+
 Processing photo and extracting machine IDs...
+
 Detected 4 screens. Remapping to 3840x2160...
 
+
 --- Generated Client Configurations ---
+
 Saved: config_node_1.json
+
 {
+
   "machine_id": "node_1",
+  
   "crop": { "x": 0, "y": 0, "w": 1920, "h": 1080 },
+  
   "filename": "video.mp4"
+
 }
+
+
 Saved: config_node_2.json
+
 {
+
   "machine_id": "node_2",
+  
   "crop": { "x": 1920, "y": 0, "w": 1920, "h": 1080 }
-}</blockquote>
+
+}
+</blockquote>
