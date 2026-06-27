@@ -6,6 +6,8 @@ This runs over UDP, so it's both insecure and not recommended to be used on an o
 
 Each client player should have a unique machine_id. This isn't enforced or checked, so you can have all of them playing one segment, if you copy the same config over and over again.  
 
+Was usable for 1080p source files on a couple of n100 machines.
+
 ## Set the video file (supports spaces in the name)
 echo "filename /path/to/local_video.mp4" | nc -u -w0 127.0.0.1 5005
 
