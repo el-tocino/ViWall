@@ -14,13 +14,12 @@ class VideoTilePlayer:
         # Thread-safe state
         self.lock = threading.Lock()
         self.playing = False
+        self.setup_mode = False  # New setup state
         self.filename = None
-        self.machine_id = "node_1" # Default ID
+        self.machine_id = "node_1" 
         self.crop = {"x": 0, "y": 0, "w": 800, "h": 600} 
         
-        # Sync variable
         self.sync_frame = None
-        
         self.cap = None
         self.load_config()
         
@@ -40,7 +39,6 @@ class VideoTilePlayer:
             except Exception as e:
                 print(f"Error loading config: {e}")
         else:
-            # Generate default config if it doesn't exist
             self.save_config()
 
     def save_config(self):
@@ -74,13 +72,18 @@ class VideoTilePlayer:
         with self.lock:
             if cmd == "start":
                 self.playing = True
+                self.setup_mode = False
             
             elif cmd == "stop":
+                self.playing = False
+                self.setup_mode = False
+                
+            elif cmd == "setup":
+                self.setup_mode = True
                 self.playing = False
             
             elif cmd == "sync" and len(parts) == 2:
                 try:
-                    # e.g., "sync 1500" jumps to frame 1500
                     self.sync_frame = int(parts[1])
                 except ValueError:
                     print("Invalid sync parameter. Expected integer.")
@@ -94,11 +97,8 @@ class VideoTilePlayer:
             
             elif cmd == "reconfigure" and len(parts) == 6:
                 target_id = parts[1]
-                
-                # Only apply if the command is meant for this specific machine
                 if target_id == self.machine_id:
                     try:
-                        # Syntax: reconfigure {target_id} {x} {y} {w} {h}
                         self.crop = {
                             "x": int(parts[2]),
                             "y": int(parts[3]),
@@ -114,24 +114,49 @@ class VideoTilePlayer:
         window_name = f"Tile Player - {self.machine_id}"
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         
+        # Uncomment the line below to force the application to take over the entire physical monitor
+        # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        
         while True:
             # 1. Safely read current state
             with self.lock:
                 playing = self.playing
+                setup_mode = self.setup_mode
                 filename = self.filename
                 crop = self.crop.copy()
                 sync_target = self.sync_frame
                 
-                # Clear the sync target once we've read it
                 if self.sync_frame is not None:
                     self.sync_frame = None
 
-            # 2. Handle Playback and Syncing
-            if playing and filename and os.path.exists(filename):
+            # 2. Handle Setup Mode
+            if setup_mode:
+                # Create a solid white background (255, 255, 255)
+                white_frame = np.ones((crop["h"], crop["w"], 3), dtype=np.uint8) * 255
+                
+                # Dynamic font scaling based on window width
+                text = self.machine_id
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = max(1.0, crop["w"] / 400.0) 
+                thickness = max(2, int(font_scale * 2))
+                
+                # Calculate text size and center coordinates
+                text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+                text_x = (crop["w"] - text_size[0]) // 2
+                text_y = (crop["h"] + text_size[1]) // 2
+                
+                # Draw black text
+                cv2.putText(white_frame, text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness)
+                cv2.imshow(window_name, white_frame)
+                
+                if cv2.waitKey(100) & 0xFF == 27:
+                    break
+                    
+            # 3. Handle Playback
+            elif playing and filename and os.path.exists(filename):
                 if self.cap is None or not self.cap.isOpened():
                     self.cap = cv2.VideoCapture(filename)
                 
-                # Apply frame sync if requested
                 if sync_target is not None:
                     self.cap.set(cv2.CAP_PROP_POS_FRAMES, sync_target)
                     
@@ -141,7 +166,6 @@ class VideoTilePlayer:
                     self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     continue
                     
-                # 3. Apply Cropping Matrix
                 h, w = frame.shape[:2]
                 
                 x1, y1 = max(0, crop["x"]), max(0, crop["y"])
@@ -152,14 +176,14 @@ class VideoTilePlayer:
                 if cropped.size > 0:
                     cv2.imshow(window_name, cropped)
                     
-                # 4. Timing control
                 fps = self.cap.get(cv2.CAP_PROP_FPS)
                 delay = int(1000 / fps) if fps > 0 else 30
                 
                 if cv2.waitKey(delay) & 0xFF == 27: 
                     break
+                    
+            # 4. Handle Idle State
             else:
-                # Idle state
                 black_frame = np.zeros((crop["h"], crop["w"], 3), dtype=np.uint8)
                 cv2.imshow(window_name, black_frame)
                 
